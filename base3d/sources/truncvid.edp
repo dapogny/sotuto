@@ -1,0 +1,22 @@
+/* Truncation of domain for vizualization */
+include "./sources/inout.idp"
+load "medit"
+load "msh3"
+
+/* Get file names */
+string sexchfile = "./vid/exch.data";
+string smesh     = getsParam(sexchfile,"MeshName");
+string smeshout  = getsParam(sexchfile,"MeshOutName");
+
+/* Load mesh */
+mesh3 Th = readmesh3(smesh);
+
+/* Finite Element spaces and functions */
+fespace Vh0(Th,P0);
+Vh0 reg = region;
+
+/* Mesh of the interior part, associated FE spaces and functions */
+mesh3 Thi = trunc(Th,(reg(x,y,z) == 3),label=3);
+
+/* Save data */
+savemesh(Thi,smeshout);

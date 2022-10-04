@@ -1,0 +1,32 @@
+/* Calculation of a shape gradient (not a descent direction) for the volume functional */
+include "./sources/inout.idp"
+include "./sources/macros.idp"
+
+/* Get mesh and sol names */
+string MESH       = getsParam(EXCHFILE,"MeshName");
+string GRADV      = getsParam(EXCHFILE,"GradName");
+int REFINT        = getiParam(EXCHFILE,"Refint");
+int REFNEU        = getiParam(EXCHFILE,"Neumann");
+int REFISO        = getiParam(EXCHFILE,"ReferenceBnd");
+
+/* Loading mesh */
+mesh Th = readmesh(MESH);
+
+/* Finite element spaces and functions */
+fespace Vh(Th,P1);
+fespace Vh0(Th,P0);
+
+Vh g,v;
+Vh0 reg = region;
+
+/* Mesh of the interior part */
+mesh Thi = trunc(Th,(reg(x,y) == REFINT),label=REFINT);
+
+/* Resolution of the extension - regularization problem */
+problem velext(g,v) = psreg(g,v)
+                         - int1d(Thi,REFISO)(1.0*v)
+                         + on(REFNEU,g=0.0);
+
+/* Solve problem and save solution */
+velext;
+printsol(GRADV,g[]);

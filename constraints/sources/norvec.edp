@@ -1,0 +1,52 @@
+/* Conversion of a scalar field into a vector field borne by the normal vector induced by the LS function phi */
+include "./sources/inout.idp"
+include "./sources/macros.idp"
+
+/* Get mesh and sol names, and global parameters */
+string MESH       = getsParam(EXCHFILE,"MeshName");
+string PHI        = getsParam(EXCHFILE,"PhiName");
+string SOL        = getsParam(EXCHFILE,"SolName");
+string GRAD       = getsParam(EXCHFILE,"GradName");
+
+/* Load mesh */
+mesh Th = readmesh(MESH);
+
+/* Finite element spaces and functions */
+fespace Vh(Th,P1);
+fespace Vh0(Th,P0);
+Vh phi,nx,ny,norm,g,gx,gy,v;
+Vh0 nx0,ny0,norm0;
+
+/* Other parameters */
+real EPS = 1.e-10;
+
+/* Load data */
+loadsol(PHI,phi[]);
+loadsol(SOL,g[]);
+  
+/* Extended normal vector as a P0 function over the mesh */
+norm0 = sqrt(EPS^2+dx(phi)*dx(phi)+dy(phi)*dy(phi));
+nx0 = dx(phi) / norm0;
+ny0 = dy(phi) / norm0;
+  
+/* Conversion into a vector descent direction */
+/* Extended normal vector as a P1 function over the mesh */
+problem extnx(nx,v) = int2d(Th)(nx*v)
+                      - int2d(Th)(nx0*v);
+
+problem extny(ny,v) = int2d(Th)(ny*v)
+                        - int2d(Th)(ny0*v);
+
+extnx;
+extny;
+
+norm = sqrt(EPS^2 + nx*nx + ny*ny);
+nx = nx / norm;
+ny = ny / norm;
+  
+/* Descent direction as a vector field along the normal direction */
+gx = g * nx;
+gy = g * ny;
+
+/* Save solution */
+printvec2(GRAD,gx[],gy[]);

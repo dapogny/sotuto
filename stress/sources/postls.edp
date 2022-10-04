@@ -1,0 +1,33 @@
+/* Post-treatment of the input level set function */
+include "./sources/inout.idp"
+include "./sources/macros.idp"
+
+/* Get mesh and sol names */
+string MESH    = getsParam(EXCHFILE,"MeshName");
+string PHI     = getsParam(EXCHFILE,"PhiName");
+string PHIOUT  = getsParam(EXCHFILE,"SolName");
+
+/* Read mesh */
+mesh Th = readmesh(MESH);
+
+/* Finite element space and functions */
+fespace Vh(Th,P1);
+Vh phi,phir,v;
+
+/* Other parameters and functions */
+real EPS = 1.e-20;
+int np = Th.nv;
+real[int] tab(np);
+
+/* Load level set function */
+loadsol(PHI,phi[]);
+
+/* Truncate LS function with a short area near the application of stress */
+for(int n=0; n<np; n++) {
+  tab[n] = abs(chifix(Th(n).x,Th(n).y)) > EPS ? -1.0 : phi[][n];
+}
+
+phir[] = tab;
+
+/* Save LS function */
+printsol(PHIOUT,phir[]);

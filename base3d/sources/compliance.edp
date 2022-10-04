@@ -1,0 +1,32 @@
+/* Calculation of the compliance of the input structure */
+include "./sources/inout.idp"
+include "./sources/macros.idp"
+load "msh3"
+
+/* Get mesh and sol names, and global parameters */
+string MESH       = getsParam(EXCHFILE,"MeshName");
+string SOL        = getsParam(EXCHFILE,"DispName");
+int REFINT        = getiParam(EXCHFILE,"Refint");
+int REFNEU        = getiParam(EXCHFILE,"Neumann");
+int REFISO        = getiParam(EXCHFILE,"ReferenceBnd");
+
+/* Loading mesh */
+mesh3 Th = readmesh3(MESH);
+
+/* Finite element spaces and functions */
+fespace Vh(Th,P1);
+Vh ux,uy,uz;
+
+/* Other parameters */
+real cply;
+
+/* Read solution */
+loadvec3(SOL,ux[],uy[],uz[]);
+
+/* Calculate compliance */
+cply = int3d(Th,REFINT)(2.0*mu*(dx(ux)*dx(ux)+dy(uy)*dy(uy)+dz(uz)*dz(uz)))
+       + int3d(Th,REFINT)(mu*((dx(uy)+dy(ux))*(dx(uy)+dy(ux)) + (dx(uz)+dz(ux))*(dx(uz)+dz(ux)) + (dy(uz)+dz(uy))*(dy(uz)+dz(uy))))
+       + int3d(Th,REFINT)(lm*(dx(ux)+dy(uy)+dz(uz))*(dx(ux)+dy(uy)+dz(uz)));
+
+/* Save result */
+setrParam(EXCHFILE,"Compliance",cply);

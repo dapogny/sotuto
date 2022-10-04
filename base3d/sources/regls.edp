@@ -1,0 +1,29 @@
+/* Laplacian smoothing of the input level set function */
+include "./sources/inout.idp"
+include "./sources/macros.idp"
+load "msh3"
+
+/* Get mesh and sol names */
+string MESH    = getsParam(EXCHFILE,"MeshName");
+string PHI     = getsParam(EXCHFILE,"PhiName");
+string PHIOUT  = getsParam(EXCHFILE,"SolName");
+
+/* Read mesh */
+mesh3 Th = readmesh3(MESH);
+
+/* Finite element space and functions */
+fespace Vh(Th,P1);
+Vh phi,phir,v;
+
+/* Load level set function */
+loadsol(PHI,phi[]);
+
+/* Regularization problem */
+problem regLS(phir,v,solver=CG) = int3d(Th)(alphaRLS^2*(dx(phir)*dx(v)+dy(phir)*dy(v)+dz(phir)*dz(v)) + phir*v )
+                                  - int3d(Th)(phi*v);
+
+// regLS;
+phir = phi;
+
+/* Save LS function */
+printsol(PHIOUT,phir[]);

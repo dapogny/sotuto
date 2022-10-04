@@ -1,0 +1,159 @@
+/* Get string parameter from file */
+func string getsParam(string file,string kwd) {
+  string snam;
+  string s= " ";
+  ifstream f(file);
+  
+  while ( s != kwd ) {
+    f >> s;
+  }
+  f >> snam;
+  return(snam);
+}
+
+/* Get integer parameter */
+func int getiParam(string file,string kwd) {
+  int ipar;
+  string s= " ";
+  ifstream f(file);
+  
+  while ( s != kwd ) {
+    f >> s;
+  }
+  f >> ipar;
+  return(ipar);
+}
+
+/* Get real parameter */
+func real getrParam(string file,string kwd) {
+  real rpar;
+  string s= " ";
+  ifstream f(file);
+  
+  while ( s != kwd ) {
+    f >> s;
+  }
+  f >> rpar;
+  return(rpar);
+}
+
+/* Set real parameter */
+func real setrParam(string file,string kwd,real rpar) {
+  string s= " ";
+  int n=1;
+  
+  /* Search for possible existence of entry kwd */
+  {
+    ifstream f(file);
+    while ( f.good() && s != kwd ) {
+      getline(f,s);
+      n++;
+    }
+  }
+
+  /* Add value and entry if it does not exist */
+  {
+    ofstream fo(file,append);
+    if ( s==kwd ) {
+      s="gsed -i '"+n+"c\ "+rpar+"' "+file;
+      exec(s);
+    }
+    else {
+      fo<<kwd+"\n"<<rpar<<"\n"<<endl;
+    }
+  }
+  return(rpar);
+}
+
+/* Read a .sol file containing a scalar-valued solution */
+func int loadsol(string sin, real[int] & u) {
+  ifstream fin(sin);
+  string s;
+  int np;
+  
+  /* Read header */
+  for(int i=0; i<5; i++) {
+    fin >> s;
+  }
+  
+  /* Parse number of vertices */
+  fin >> np;
+    
+  /* Read header (bis) */
+  for(int i=0; i<2; i++) {
+    fin >> s;
+  }
+      
+  /* Read values of the solution */
+  for(int i=0; i<np; i++) {
+    fin>>u[i];
+  }
+  
+  return(1);
+}
+
+/* Read a .sol file containing a vector-valued solution in 2d */
+func int loadvec2(string sin, real[int] & ux, real[int] & uy) {
+  ifstream fin(sin);
+  string s;
+  int np;
+  
+  /* Read header */
+  for(int i=0; i<5; i++) {
+    fin >> s;
+  }
+  
+  /* Parse number of vertices */
+  fin >> np;
+  
+  /* Read header (bis) */
+  for(int i=0; i<2; i++) {
+    fin >> s;
+  }
+  
+  /* Read values of the velocity */
+  for(int i=0; i<np; i++) {
+    fin>>ux[i];
+    fin>>uy[i];
+  }
+  
+  return(1);
+}
+
+/* Save scalar function u as a .sol file */
+func int printsol(string sout, real[int] & u) {
+  
+  int n = u.n;
+  ofstream fout(sout);
+  
+  /* Header */
+  fout << "MeshVersionFormatted 1\n\nDimension 2\n\nSolAtVertices\n"<<n<<"\n1 1\n"<<endl;
+  
+  /* Print values */
+  for (int k=0; k<n; k++)
+    fout<<u[k]<<endl;
+  
+  /* End keyword */
+  fout<<"End"<<endl;
+
+  return(1); 
+}
+
+/* Save vector field [ux,uy] as a .sol file */
+func int printvec2(string sout, real[int] & ux, real[int] & uy) {
+  
+  int n = ux.n;
+  ofstream fout(sout);
+  
+  /* Header */
+  fout << "MeshVersionFormatted 1\n\nDimension 2\n\nSolAtVertices\n"<<n<<"\n1 2\n"<<endl;
+  
+  /* Print values */
+  for (int k=0; k<n; k++)
+    fout<<ux[k]<<" "<<uy[k]<<endl;
+  
+  /* End keyword */
+  fout<<"End"<<endl;
+
+  return(1);
+}

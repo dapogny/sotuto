@@ -1,0 +1,52 @@
+/* Calculation of a shape gradient (not a descent direction) for the stress functional */
+include "./sources/inout.idp"
+include "./sources/macros.idp"
+
+/* Get mesh and sol names */
+string MESH       = getsParam(EXCHFILE,"MeshName");
+string DISP       = getsParam(EXCHFILE,"DispName");
+string ADJ        = getsParam(EXCHFILE,"AdjName");
+string GRADS      = getsParam(EXCHFILE,"GradName");
+int REFINT          = getiParam(EXCHFILE,"Refint");
+int REFNEU        = getiParam(EXCHFILE,"Neumann");
+int REFISO        = getiParam(EXCHFILE,"ReferenceBnd");
+
+/* Loading mesh */
+mesh Th = readmesh(MESH);
+
+/* Finite element spaces and functions */
+fespace Vh(Th,P1);
+fespace Vh0(Th,P0);
+
+Vh ux,uy,px,py,g,v;
+Vh0 reg = region;
+
+/* Load elastic displacement and adjoint state */
+loadvec2(DISP,ux[],uy[]);
+loadvec2(ADJ,px[],py[]);
+
+/* Mesh of the interior part and corresponding FE spaces */
+mesh Thi = trunc(Th,(reg(x,y) == REFINT),label=REFINT);
+fespace Vhi(Thi,P1);
+fespace Vh0i(Thi,P0);
+Vhi uix,uiy,pix,piy;
+Vh0i sigmau2,Aeuep;
+
+/* Integrand of the shape derivative */
+uix = ux;
+uiy = uy;
+pix = px;
+piy = py;
+
+sigmau2 = (2.0*mu*dx(ux)+lm*(dx(ux)+dy(uy)))^2 + (2.0*mu*dy(uy)+lm*(dx(ux)+dy(uy)))^2 + 2.0*(mu*(dx(uy)+dy(ux)))^2;
+Aeuep   = mu*(2.0*dx(uix)*dx(pix) + (dx(uiy)+dy(uix))*(dx(piy)+dy(pix))
+            + 2.0*dy(uiy)*dy(piy)) + lm*(dx(uix)+dy(uiy))*(dx(pix)+dy(piy));
+
+/* Resolution of the extension - regularization problem */
+problem velext(g,v) = psreg(g,v)
+                        - int1d(Thi,REFISO)((kS*sigmau2+Aeuep)*v)
+                        + on(REFNEU,g=0.0);
+
+/* Solve problem and save solution */
+velext;
+printsol(GRADS,g[]);

@@ -1,0 +1,33 @@
+/* Calculation of the compliance of the input structure */
+include "./sources/inout.idp"
+include "./sources/macros.idp"
+
+/* Get mesh and sol names, and global parameters */
+string MESH       = getsParam(EXCHFILE,"MeshName");
+string SOL        = getsParam(EXCHFILE,"DispName");
+int REFINT        = getiParam(EXCHFILE,"Refint");
+int REFNEU        = getiParam(EXCHFILE,"Neumann");
+int REFISO        = getiParam(EXCHFILE,"ReferenceBnd");
+
+/* Loading mesh */
+mesh Th = readmesh(MESH);
+
+/* Finite element spaces and functions */
+fespace Vh(Th,P1);
+Vh ux,uy;
+
+/* Other parameters */
+real stress;
+
+/* Read solution */
+loadvec2(SOL,ux[],uy[]);
+
+/* Calculate compliance */
+stress = int2d(Th,REFINT)(kS*( (2.0*mu*dx(ux)+lm*(dx(ux)+dy(uy)))^2
+                              + (2.0*mu*dy(uy)+lm*(dx(ux)+dy(uy)))^2
+                              + 2.0*(mu*(dx(uy)+dy(ux)))^2
+                             )
+                          );
+
+/* Save result */
+setrParam(EXCHFILE,"Stress",stress);

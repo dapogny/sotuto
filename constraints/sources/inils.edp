@@ -1,0 +1,59 @@
+/* Creation of the initial level set function: 2*10 bridge with NC load cases on upper side */
+include "./sources/inout.idp"
+include "./sources/macros.idp"
+
+/* Get mesh and sol names */
+string MESH = getsParam(EXCHFILE,"MeshName");
+string PHI  = getsParam(EXCHFILE,"PhiName");
+
+/* Read mesh */
+mesh Th = readmesh(MESH);
+
+/* Finite element space and functions */
+fespace Vh(Th,P1);
+Vh phi;
+
+/* Definition of the initial level set function */
+func real iniLS(real xx,real yy) {
+  real cx,cy;
+  real r = 0.2;
+  real dd = 10.0;
+  
+  /* Upper row of holes */
+  for(int i=0; i<11; i++) {
+    cx = 0.0 + i*1.0;
+    cy = 1.5;
+    dd = min(dd,sqrt((xx-cx)^2+(yy-cy)^2)-r);
+  }
+  
+  /* Middle rows of holes */
+  for(int i=0; i<10; i++) {
+    cx = 0.5 + i*1.0;
+    cy = 1.0;
+    dd = min(dd,sqrt((xx-cx)^2+(yy-cy)^2)-r);
+  }
+  
+  for(int i=0; i<11; i++) {
+    cx = 0.0 + i*1.0;
+    cy = 0.5;
+    dd = min(dd,sqrt((xx-cx)^2+(yy-cy)^2)-r);
+  }
+  
+  /* Crop bottom part */
+  if ( xx > 1.0 && xx < 9.0 )
+    dd = min(dd,yy-0.1); 
+  
+  /* Bottom row of holes */
+  /* for(int i=1; i<9; i++) {
+    cx = 0.5 + i*1.0;
+    cy = 0.0;
+    dd = min(dd,sqrt((xx-cx)^2+(yy-cy)^2)-r);
+  } */
+  
+  return (dd);
+}
+
+phi = -iniLS(x,y);
+
+/* Save LS function */
+printsol(PHI,phi[]);

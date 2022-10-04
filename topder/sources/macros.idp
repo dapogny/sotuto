@@ -1,0 +1,15 @@
+/* General macros ansd global parameters for shape and topology optimization */
+/* File for communication of data with python */
+string EXCHFILE   = "./res/exch.data";
+
+/* Inner product for extension / regularization */
+real alpha        = getrParam(EXCHFILE,"Regularization");
+macro psreg(u,v) ( int2d(Th)(alpha^2*(dx(u)*dx(v)+dy(u)*dy(v)) + u*v) ) // EOM
+
+/* Linear elasticity parameters */
+real lm  = 0.5769;
+real mu  = 0.3846;
+
+/* Load case */
+real loadx = 0.0;
+real loady = -1.0;

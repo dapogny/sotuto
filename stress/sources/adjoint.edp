@@ -1,0 +1,54 @@
+/* Calculation of the adjoint state for the stress functional */
+include "./sources/inout.idp"
+include "./sources/macros.idp"
+load "medit"
+
+/* Get mesh and sol names, and global parameters */
+string MESH       = getsParam(EXCHFILE,"MeshName");
+string SOL        = getsParam(EXCHFILE,"DispName");
+string ADJ        = getsParam(EXCHFILE,"AdjName");
+int REFINT          = getiParam(EXCHFILE,"Refint");
+int REFDIR        = getiParam(EXCHFILE,"Dirichlet");
+int REFISO        = getiParam(EXCHFILE,"ReferenceBnd");
+
+/* Loading mesh */
+mesh Th = readmesh(MESH);
+
+/* Finite element spaces and functions */
+fespace Vh(Th,P1);
+fespace Vh0(Th,P0);
+Vh ux,uy,px,py;
+Vh0 reg = region;
+
+/* Load displacement */
+loadvec2(SOL,ux[],uy[]);
+
+/* Mesh of the interior part and corresponding FE space */
+mesh Thi = trunc(Th,(reg(x,y) == REFINT),label=REFINT);
+fespace Vhi(Thi,P1);
+Vhi uix,uiy,pix,piy,vix,viy;
+
+/* Interpolation of displacement from full to sub mesh */
+uix = ux;
+uiy = uy;
+
+/* Variational formulation of the problem */
+problem adjoint([pix,piy],[vix,viy]) = int2d(Thi)(mu*(2.0*dx(pix)*dx(vix) + (dx(piy)+dy(pix))*(dx(viy)+dy(vix))
+                                        + 2.0*dy(piy)*dy(viy)) + lm*(dx(pix)+dy(piy))*(dx(vix)+dy(viy)))
+                                       + int2d(Thi)(2.0*kS*(
+                                                      (2.0*mu*dx(uix)+lm*(dx(uix)+dy(uiy)))*(2.0*mu*dx(vix)+lm*(dx(vix)+dy(viy)))
+                                                      + (2.0*mu*dy(uiy)+lm*(dx(uix)+dy(uiy)))*(2.0*mu*dy(viy)+lm*(dx(vix)+dy(viy)))
+                                                      + 2.0*(mu*(dx(uiy)+dy(uix)))*(mu*(dx(viy)+dy(vix)))
+                                                    )
+                                                  )
+                                       + on(REFDIR,pix=0.0,piy=0.0);
+
+/* Solve problem */
+adjoint;
+
+/* Transfer the problem on the full mesh */
+px = pix;
+py = piy;
+
+/* Save solution */
+printvec2(ADJ,px[],py[]);

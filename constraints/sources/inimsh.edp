@@ -1,0 +1,36 @@
+/* Creation of the initial mesh: 2*10 bridge with NC load cases on upper side */
+include "./sources/inout.idp"
+include "./sources/macros.idp"
+
+/* Get mesh and sol names */
+string MESH = getsParam(EXCHFILE,"MeshName");
+int    REFDIR = getiParam(EXCHFILE,"Dirichlet");
+int    REFNEU = getiParam(EXCHFILE,"Neumann");
+int    NC     = getiParam(EXCHFILE,"NC");
+
+/* Mesh parameters */
+int   ndir   = 20;                  // Number of vertices on each Dirichlet region
+int   nside  = 40;                  // Number of vertices on the top side of mesh
+int   ntop   = 200;                 // Number of vertices on the top side of mesh
+int   nz     = ntop / (2*NC-1);     // Number of vertices on each region of the top side
+real  lz     = 10.0 / (2*NC-1);     // Length of each region of the top side
+ 
+/* Definition of borders */
+border left(t=0.0,2.0){x=0.0; y=2.0-t; label=0.0;};
+border bot1(t=0.0,1.0){x=t; y=0.0; label=REFDIR;};
+border bot2(t=1.0,9.0){x=t; y=0.0; label=0.0;};
+border bot3(t=9.0,10.0){x=t; y=0.0; label=REFDIR;};
+border right(t=0.0,2.0){x=10.0; y=t; label=0.0;};
+
+/* Upper boundary is subdivided into 2*NC-1 regions */
+border top(t=0.0,1.0;k) {x=(10.0-k*lz)-lz*t; y=2.0; label=(k%2 ? 0 : REFNEU+k/2);};
+
+int[int] nn(2*NC-1);
+for(int k=0; k<2*NC-1; k++)
+  nn[k] = nz;
+
+/* Create mesh */
+mesh Th = buildmesh(top(nn)+left(nside)+bot1(ndir)+bot2(ntop-2*ndir)+bot3(ndir)+right(nside));
+
+/* Save mesh */
+savemesh(Th,MESH);

@@ -1,0 +1,101 @@
+/* Creation of the initial level set function: 3d cantilever test case */
+include "./sources/inout.idp"
+include "./sources/macros.idp"
+load "msh3"
+
+/* Get mesh and sol names */
+string MESH = getsParam(EXCHFILE,"MeshName");
+string PHI  = getsParam(EXCHFILE,"PhiName");
+
+/* Read mesh */
+mesh3 Th = readmesh3(MESH);
+
+/* Finite element space and functions */
+fespace Vh(Th,P1);
+Vh phi;
+
+/* Definition of the initial level set function */
+int np = Th.nv;
+real r = 0.05;
+real[int] o(3),co(3);
+real[int] tab(np);
+
+/* Definition of the initial level set function */
+for(int n=0; n<np; n++) {
+  tab[n] = 100.0;
+}
+
+for(int n=0; n<np; n++) {
+  o[0] = Th(n).x;
+  o[1] = Th(n).y;
+  o[2] = Th(n).z;
+  
+  /* Left column */
+  for(int k=0; k<3; k++) {
+    for(int i=0; i<5; i++) {
+      co[0] = i*0.5;
+      co[1] = 0.0;
+      co[2] = 0.5*k;
+    
+      tab[n] = min(tab[n],sqrt((o[0]-co[0])^2+(o[1]-co[1])^2+(o[2]-co[2])^2)-r);
+    }
+  }
+  
+  /* L-C column */
+  for(int k=0; k<2; k++) {
+    for(int i=0; i<4; i++) {
+      co[0] = 0.125+i*0.5;
+      co[1] = 0.25;
+      co[2] = 0.25+0.5*k;
+    
+      tab[n] = min(tab[n],sqrt((o[0]-co[0])^2+(o[1]-co[1])^2+(o[2]-co[2])^2)-r);
+    }
+  }
+  
+  /* Central column */
+  for(int k=0; k<2; k++) {
+    for(int i=0; i<5; i++) {
+      co[0] = i*0.5;
+      co[1] = 0.5;
+      co[2] = 0.0+1.0*k;
+    
+      tab[n] = min(tab[n],sqrt((o[0]-co[0])^2+(o[1]-co[1])^2+(o[2]-co[2])^2)-r);
+    }
+  }
+  
+  for(int i=0; i<4; i++) {
+    co[0] = i*0.5;
+    co[1] = 0.5;
+    co[2] = 0.5;
+    
+    tab[n] = min(tab[n],sqrt((o[0]-co[0])^2+(o[1]-co[1])^2+(o[2]-co[2])^2)-r);
+  }
+
+  /* R-C column */
+  for(int k=0; k<2; k++) {
+    for(int i=0; i<4; i++) {
+      co[0] = 0.125+i*0.5;
+      co[1] = 0.75;
+      co[2] = 0.25+k*0.5;
+    
+      tab[n] = min(tab[n],sqrt((o[0]-co[0])^2+(o[1]-co[1])^2+(o[2]-co[2])^2)-r);
+    }
+  }
+  
+  /* Right column */
+  for(int k=0; k<3; k++) {
+    for(int i=0; i<5; i++) {
+      co[0] = i*0.5;
+      co[1] = 1.0;
+      co[2] = k*0.5;
+    
+      tab[n] = min(tab[n],sqrt((o[0]-co[0])^2+(o[1]-co[1])^2+(o[2]-co[2])^2)-r);
+    }
+  }
+}
+
+phi[] = tab;
+phi = -phi;
+
+/* Save LS function */
+printsol(PHI,phi[]);

@@ -1,0 +1,47 @@
+/* Creation of the initial mesh: 3d cantilever test case */
+include "./sources/inout.idp"
+include "./sources/macros.idp"
+load "tetgen"
+load "msh3"
+
+/* Get mesh and sol names */
+string MESH = getsParam(EXCHFILE,"MeshName");
+int    REFDIR = getiParam(EXCHFILE,"Dirichlet");
+int    REFNEU = getiParam(EXCHFILE,"Neumann");
+
+/* Create the meshes of the faces */
+int N = 20;
+border a(t=0,1.0) {x=0; y=1.0-t; label=0;};
+border b(t=0,1.0) {x=t; y=0; label=0;};
+border c(t=0,1.0) {x=1.0; y=t; label=0;};
+border d(t=0,1.0) {x=1.0-t; y=1.0; label=0;};
+border circ(t=0,2*pi) {x=0.5+0.1*cos(t); y=0.5+0.1*sin(t); label=4;};
+
+/* Create Dirichlet boundary */
+mesh Th2d    = buildmesh(a(N) + b(N) + c(N) + d(N));
+int[int] rch = [0,REFDIR];
+Th2d         = change(Th2d,region=rch);
+meshS ThD    = movemesh23(Th2d,transfo=[0.0,1.0-x,y]);
+
+/* Create Neumann boundary */
+Th2d      = buildmesh(a(N)+b(N)+c(N)+d(N)+circ(N));
+rch       = [1,0,0,REFNEU];
+Th2d      = change(Th2d,region=rch);
+meshS ThN = movemesh23(Th2d,transfo=[2.0,x,y]);
+
+/* Create four lateral boundaries */
+Th2d = buildmesh(a(N)+b(N)+c(N)+d(N));
+meshS Thl = movemesh23(Th2d,transfo=[2.0*x,0.0,y]);
+meshS Thr = movemesh23(Th2d,transfo=[2.0*x,1.0,1.0-y]);
+meshS Tht = movemesh23(Th2d,transfo=[2.0*x,y,1.0]);
+meshS Thb = movemesh23(Th2d,transfo=[2.0*(1.0-x),y,0.0]);
+
+/* Total surface mesh */
+meshS ThS = ThD + ThN + Thl + Thr + Tht + Thb;
+
+/* Create 3d mesh */
+real[int] dominfo = [0.1,0.1,0.1,0,0.0001];
+mesh3 Th3 = tetg(ThS,switch="pqaAAYYQ",nbofregions=1,regionlist=dominfo);
+
+/* Save mesh */
+savemesh(Th3,MESH);

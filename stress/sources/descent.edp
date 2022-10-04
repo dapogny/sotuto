@@ -1,0 +1,94 @@
+/* Calculation of a descent direction for the stress minimization problem under volume constraint
+   by means of the null-space constrained optimization algorithm */
+include "./sources/inout.idp"
+include "./sources/macros.idp"
+
+/* Get mesh and sol names, and global parameters */
+string MESH       = getsParam(EXCHFILE,"MeshName");
+string PHI        = getsParam(EXCHFILE,"PhiName");
+string GRAD       = getsParam(EXCHFILE,"GradName");
+string GRADV      = getsParam(EXCHFILE,"GradVolName");
+string GRADS      = getsParam(EXCHFILE,"GradSName");
+real vol          = getrParam(EXCHFILE,"Volume");
+real vtarg        = getrParam(EXCHFILE,"VolumeTarget");
+int REFINT          = getiParam(EXCHFILE,"Refint");
+int REFNEU        = getiParam(EXCHFILE,"Neumann");
+int REFISO        = getiParam(EXCHFILE,"ReferenceBnd");
+real AJ           = getrParam(EXCHFILE,"CoefficientObjective");
+real AG           = getrParam(EXCHFILE,"CoefficientConstraint");
+real maxNormXiJ   = getrParam(EXCHFILE,"MaxNormXiJ");
+real meshsiz      = getrParam(EXCHFILE,"MeshSize");
+
+/* Load mesh */
+mesh Th = readmesh(MESH);
+
+/* Finite element spaces and functions */
+fespace Vh(Th,P1);
+fespace Vh0(Th,P0);
+Vh g,gx,gy,thJ,thG,phi,nx,ny,norm,v,vx,vy;
+Vh xiJ,xiG,normxiJ,normxiG;
+Vh0 nx0,ny0,norm0;
+Vh0 reg = region;
+
+/* Mesh of the interior part */
+mesh Thi = trunc(Th,(reg(x,y) == REFINT),label=REFINT);
+
+/* Other parameters */
+real eps = 1.e-6;
+real maxxiJ,maxxiG,mMaxxiJ,alphaJ,alphaG;
+real ngmax,m,lambda;
+
+loadsol(PHI,phi[]);
+loadsol(GRADS,thJ[]);
+loadsol(GRADV,thG[]);
+  
+/* Coefficients for the descent direction */
+m = psreg(thG,thG);
+lambda = 1.0 / m * psreg(thJ,thG);
+  
+/* Null space and range contributions to the descent direction */
+xiJ = thJ - lambda*thG;
+xiG = 1.0/m*(vol-vtarg)*thG;
+  
+/* Extended normal vector as a P0 function over the mesh */
+norm0 = sqrt(eps+dx(phi)*dx(phi)+dy(phi)*dy(phi));
+nx0 = dx(phi) / norm0;
+ny0 = dy(phi) / norm0;
+  
+maxxiJ = max(-xiJ[].min,xiJ[].max);
+mMaxxiJ = max(maxxiJ,maxNormXiJ);
+maxxiG = max(-xiG[].min,xiG[].max);
+alphaJ = AJ*meshsiz / (eps^2+mMaxxiJ);
+alphaG = AG*meshsiz / (eps^2+maxxiG);
+
+/* Scalar descent direction */
+g = - alphaJ*xiJ - alphaG*xiG;
+  
+/* Conversion into a vector descent direction */
+/* Extended normal vector as a P1 function over the mesh */
+problem extnx(nx,v) = int2d(Th)(nx*v)
+                      - int2d(Th)(nx0*v);
+
+problem extny(ny,v) = int2d(Th)(ny*v)
+                        - int2d(Th)(ny0*v);
+
+extnx;
+extny;
+
+norm = sqrt(eps^2+nx*nx+ny*ny);
+nx = nx / norm;
+ny = ny / norm;
+  
+/* Descent direction as a vector field along the normal direction */
+gx = g * nx;
+gy = g * ny;
+
+/* Save solution */
+printvec2(GRAD,gx[],gy[]);
+
+/* Save coefficients for the merit function */
+setrParam(EXCHFILE,"Lagrange",lambda);
+setrParam(EXCHFILE,"Penalty",m);
+setrParam(EXCHFILE,"alphaJ",alphaJ);
+setrParam(EXCHFILE,"alphaG",alphaG);
+setrParam(EXCHFILE,"NormXiJ",maxxiJ);

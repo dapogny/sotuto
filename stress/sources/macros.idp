@@ -1,0 +1,22 @@
+/* General macros ansd global parameters for shape and topology optimization */
+/* File for communication of data with python */
+string EXCHFILE   = "./res/exch.data";
+
+/* Localisation function for the stress functional */
+func kS = ( y > 1.8 || (x-2.0)^2 + (y-0.5)^2 < 0.1^2 ) ? 0.0 : 1.0;
+
+/* Characteristic function of the imposed region in shapes */
+real TGV = 1.e16;
+func chifix = ( (x-2.0)^2 + (y-0.5)^2 < 0.15^2 ) ? 1.0 : 0.0;
+
+/* Inner product for extension / regularization */
+real alpha        = getrParam(EXCHFILE,"Regularization");
+macro psreg(u,v) ( int2d(Th)(alpha^2*(dx(u)*dx(v)+dy(u)*dy(v)) + (1.0 + TGV*chifix)*u*v) ) // EOM
+
+/* Linear elasticity parameters */
+real lm  = 0.5769;
+real mu  = 0.3846;
+
+/* Load case */
+real loadx = 0.0;
+real loady = -1.0;

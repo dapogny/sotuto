@@ -1,0 +1,53 @@
+/* Update the shape by removing the (volfrac) % of elements in the shape where topological derivative is most negative */
+include "./sources/inout.idp"
+include "./sources/macros.idp"
+
+/* Get mesh and sol names, and global parameters */
+string MESH       = getsParam(EXCHFILE,"MeshName");
+string PHI        = getsParam(EXCHFILE,"PhiName");
+string GRAD       = getsParam(EXCHFILE,"GradName");
+string NEWPHI     = getsParam(EXCHFILE,"SolName");
+real vfrac        = getrParam(EXCHFILE,"VolFracTG");
+
+/* Load mesh */
+mesh Th = readmesh(MESH);
+
+/* Finite element spaces and functions */
+fespace Vh(Th,P1);
+Vh phi,phin,g;
+
+/* Load level set function and topological derivative */
+loadsol(PHI,phi[]);
+loadsol(GRAD,g[]);
+
+/* Other parameters */
+real EPS    = 1.e-6;
+real vini   = int2d(Th,levelset=phi)(1.0); // Volume of the input shape
+real vtarg  = (1.0-vfrac)*vini;            // Target volume after element removal
+real maxit  = 50;                          // Maximum number of iterations in dichotomy
+real vmin   = g[].min;                     // Lower bound for the searched c
+real vmax   = g[].max;                     // Upper bound for the searched c
+real c,vol,vold;
+
+/* Find by dichotomy the value of c such that vol = \left\{ \phi < 0 \right\} \setminus \left\{ g(x) < c \right\} has volume vtarg
+   for c = vmin, vol = vini and for c = vmax, vol = 0 */
+for(int k=0; k<maxit; k++) {
+  /* Try mean of vmin and vmax */
+  c = 0.5 * (vmin+vmax);
+  
+  /* Version of phi where the region {g(x) < c} is removed */
+  phin = max(phi,c-g);
+  vol  = int2d(Th,levelset=phin)(1.0);
+  
+  /* Sought value is less than c*/
+  if ( vol < vtarg )
+    vmax = c;
+  /* Sought value is larger than c */
+  else
+    vmin = c;
+  
+  if ( abs(vol -vtarg) < EPS ) break;
+}
+
+/* Save topological derivative */
+printsol(NEWPHI,phin[]);

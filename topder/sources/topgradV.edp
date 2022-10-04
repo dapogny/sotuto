@@ -1,0 +1,21 @@
+/* Calculation of the topological derivative for the volume functional */
+include "./sources/inout.idp"
+include "./sources/macros.idp"
+
+/* Get mesh and sol names */
+string MESH       = getsParam(EXCHFILE,"MeshName");
+string GRADCP     = getsParam(EXCHFILE,"GradName");
+int lint          = getiParam(EXCHFILE,"Refint");
+int refneu        = getiParam(EXCHFILE,"Neumann");
+int refiso        = getiParam(EXCHFILE,"ReferenceBnd");
+
+/* Loading mesh */
+mesh Th = readmesh(MESH);
+
+/* Finite element spaces and functions */
+fespace Vh(Th,P1);
+
+Vh g = - pi;
+
+/* Save gradient */
+printsol(GRADCP,g[]);

@@ -1,0 +1,33 @@
+/* Calculation of the topological derivative of the merit function */
+include "./sources/inout.idp"
+include "./sources/macros.idp"
+
+/* Get mesh and sol names, and global parameters */
+string MESH       = getsParam(EXCHFILE,"MeshName");
+string PHI        = getsParam(EXCHFILE,"PhiName");
+string GRAD       = getsParam(EXCHFILE,"GradName");
+string GRADV      = getsParam(EXCHFILE,"GradVolName");
+string GRADCP     = getsParam(EXCHFILE,"GradCpName");
+real vol          = getrParam(EXCHFILE,"Volume");
+real vtarg        = getrParam(EXCHFILE,"VolumeTarget");
+real alphaJ       = getrParam(EXCHFILE,"alphaJ");
+real alphaG       = getrParam(EXCHFILE,"alphaG");
+real lambda       = getrParam(EXCHFILE,"Lagrange");
+real m            = getrParam(EXCHFILE,"Penalty");
+
+/* Load mesh */
+mesh Th = readmesh(MESH);
+
+/* Finite element spaces and functions */
+fespace Vh(Th,P1);
+Vh g,gCp,gV;
+
+/* Load topological derivatives */
+loadsol(GRADCP,gCp[]);
+loadsol(GRADV,gV[]);
+
+/* Topological derivative of the merit function */
+g = alphaJ*gCp + (-alphaJ*lambda + alphaG/m*(vol-vtarg))*gV;
+  
+/* Save topological derivative */
+printsol(GRAD,g[]);

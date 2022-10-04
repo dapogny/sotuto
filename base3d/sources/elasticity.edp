@@ -1,0 +1,46 @@
+/* Resolution of the linearized elasticity equation on the input shape */
+include "./sources/inout.idp"
+include "./sources/macros.idp"
+load "medit"
+load "msh3"
+
+/* Get mesh and sol names, and global parameters */
+string MESH       = getsParam(EXCHFILE,"MeshName");
+string SOL        = getsParam(EXCHFILE,"DispName");
+int REFINT          = getiParam(EXCHFILE,"Refint");
+int REFDIR        = getiParam(EXCHFILE,"Dirichlet");
+int REFNEU        = getiParam(EXCHFILE,"Neumann");
+int REFISO        = getiParam(EXCHFILE,"ReferenceBnd");
+
+/* Loading mesh */
+mesh3 Th = readmesh3(MESH);
+
+/* Finite element spaces and functions */
+fespace Vh(Th,P1);
+fespace Vh0(Th,P0);
+Vh ux,uy,uz;
+Vh0 reg = region;
+
+/* Mesh of the interior part and corresponding FE space */
+mesh3 Thi = trunc(Th,(reg(x,y,z) == REFINT),label=REFINT);
+
+fespace Vhi(Thi,P1);
+Vhi uix,uiy,uiz,vix,viy,viz;
+
+/* Variational formulation of the problem */
+problem elas([uix,uiy,uiz],[vix,viy,viz],solver=CG) = int3d(Thi)(2.0*mu*(dx(uix)*dx(vix)+dy(uiy)*dy(viy)+dz(uiz)*dz(viz)))
+                                   + int3d(Thi)(mu*((dx(uiy)+dy(uix))*(dx(viy)+dy(vix)) + (dx(uiz)+dz(uix))*(dx(viz)+dz(vix)) + (dy(uiz)+dz(uiy))*(dy(viz)+dz(viy))))
+                                   + int3d(Thi)(lm*(dx(uix)+dy(uiy)+dz(uiz))*(dx(vix)+dy(viy)+dz(viz)))
+                                   - int2d(Thi,REFNEU)(loadx*vix+loady*viy+loadz*viz)
+                                   + on(REFDIR,uix=0.0,uiy=0.0,uiz=0.0);
+
+/* Solve problem */
+elas;
+
+/* Transfer the problem on the full mesh */
+ux = uix;
+uy = uiy;
+uz = uiz;
+
+/* Save solution */
+printvec3(SOL,ux[],uy[],uz[]);

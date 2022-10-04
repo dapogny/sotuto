@@ -1,0 +1,46 @@
+/* Calculation of a shape gradient (not a descent direction) for the compliance functional */
+include "./sources/inout.idp"
+include "./sources/macros.idp"
+
+/* Get mesh and sol names */
+string MESH       = getsParam(EXCHFILE,"MeshName");
+string DISP       = getsParam(EXCHFILE,"DispName");
+string GRADCP     = getsParam(EXCHFILE,"GradName");
+int REFINT          = getiParam(EXCHFILE,"Refint");
+int REFNEU        = getiParam(EXCHFILE,"Neumann");
+int REFISO        = getiParam(EXCHFILE,"ReferenceBnd");
+
+/* Loading mesh */
+mesh Th = readmesh(MESH);
+
+/* Finite element spaces and functions */
+fespace Vh(Th,P1);
+fespace Vh0(Th,P0);
+
+Vh ux,uy,g,v;
+Vh0 reg = region;
+
+/* Load elastic displacement */
+loadvec2(DISP,ux[],uy[]);
+
+/* Mesh of the interior part and corresponding FE spaces */
+mesh Thi = trunc(Th,(reg(x,y) == REFINT),label=REFINT);
+fespace Vhi(Thi,P1);
+fespace Vh0i(Thi,P0);
+Vhi uix,uiy;
+Vh0i Aeueu;
+
+/* Integrand of the shape derivative */
+uix = ux;
+uiy = uy;
+Aeueu = mu*(2.0*dx(uix)*dx(uix) + (dx(uiy)+dy(uix))*(dx(uiy)+dy(uix))
+            + 2.0*dy(uiy)*dy(uiy)) + lm*(dx(uix)+dy(uiy))*(dx(uix)+dy(uiy));
+
+/* Resolution of the extension - regularization problem */
+problem velext(g,v) = psreg(g,v)
+                        - int1d(Thi,REFISO)(-Aeueu*v)
+                        + on(REFNEU,g=0.0);
+
+/* Solve problem and save solution */
+velext;
+printsol(GRADCP,g[]);

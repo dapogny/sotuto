@@ -1,0 +1,45 @@
+/* Resolution of the linearized elasticity equation on the input shape */
+include "./sources/inout.idp"
+include "./sources/macros.idp"
+load "medit"
+
+/* Get mesh and sol names, and global parameters */
+string MESH       = getsParam(EXCHFILE,"MeshName");
+string SOL        = getsParam(EXCHFILE,"DispName");
+int lint          = getiParam(EXCHFILE,"Refint");
+int refdir        = getiParam(EXCHFILE,"Dirichlet");
+int refdirg       = getiParam(EXCHFILE,"DirichletG");
+int refneu        = getiParam(EXCHFILE,"Neumann");
+int refiso        = getiParam(EXCHFILE,"ReferenceBnd");
+
+/* Loading mesh */
+mesh Th = readmesh(MESH);
+
+/* Finite element spaces and functions */
+fespace Vh(Th,P1);
+fespace Vh0(Th,P0);
+Vh ux,uy;
+Vh0 reg = region;
+
+/* Mesh of the interior part and corresponding FE space */
+mesh Thi = trunc(Th,(reg(x,y) == lint),label=lint);
+fespace Vhi(Thi,P1);
+Vhi uix,uiy,vix,viy;
+
+/* Variational formulation of the problem */
+problem elas([uix,uiy],[vix,viy]) = int2d(Thi)(mu*(2.0*dx(uix)*dx(vix) + (dx(uiy)+dy(uix))*(dx(viy)+dy(vix))
+                                        + 2.0*dy(uiy)*dy(viy)) + lm*(dx(uix)+dy(uiy))*(dx(vix)+dy(viy)))
+                                   - int1d(Thi,refneu)(loadx*vix+loady*viy)
+                                   + on(refdirg,uiy=0.0)
+                                   + on(refdir,uix=0.0,uiy=0.0);
+
+
+/* Solve problem */
+elas;
+
+/* Transfer the problem on the full mesh */
+ux = uix;
+uy = uiy;
+
+/* Save solution */
+printvec2(SOL,ux[],uy[]);

@@ -1,0 +1,38 @@
+/* Calculation of the sensitivity (integrand of the shape derivative)
+   and the shape gradient for the volume functional */
+include "./sources/inout.idp"
+include "./sources/macros.idp"
+
+/* Get mesh and sol names */
+string MESH       = getsParam(EXCHFILE,"MeshName");
+string DIFFV     = getsParam(EXCHFILE,"DiffName");
+string GRADV     = getsParam(EXCHFILE,"GradName");
+int REFINT          = getiParam(EXCHFILE,"Refint");
+int REFNEU        = getiParam(EXCHFILE,"Neumann");
+int REFISO        = getiParam(EXCHFILE,"ReferenceBnd");
+
+/* Loading mesh */
+mesh Th = readmesh(MESH);
+
+/* Finite element spaces and functions */
+fespace Vh(Th,P1);
+fespace Vh0(Th,P0);
+
+Vh g,sd,v;
+Vh0 reg = region;
+
+/* Mesh of the interior part */
+mesh Thi = trunc(Th,(reg(x,y) == REFINT),label=REFINT);
+
+/* Linear form associated to the shape derivative, and associated table of values*/
+varf shapeder(sd,v) = int1d(Thi,REFISO)(1.0*v);
+sd[] = shapeder(0,Vh);
+
+/* Gradient of the volume functional after (scalar) extension / regularization */
+varf innerproduct(g,v) = psreg(g,v);
+matrix A = innerproduct(Vh,Vh);
+g[] = A^-1 * sd[];
+
+/* Save shape derivative and shape gradient */
+printsol(DIFFV,sd[]);
+printsol(GRADV,g[]);

@@ -1,0 +1,28 @@
+/* Calculation of the compliance of the input structure */
+include "./sources/inout.idp"
+include "./sources/macros.idp"
+
+/* Get mesh and sol names, and global parameters */
+string MESH       = getsParam(EXCHFILE,"MeshName");
+string SOL        = getsParam(EXCHFILE,"DispName");
+int REFINT        = getiParam(EXCHFILE,"Refint");
+
+/* Loading mesh */
+mesh Th = readmesh(MESH);
+
+/* Finite element spaces and functions */
+fespace Vh(Th,P1);
+Vh ux,uy;
+
+/* Other parameters */
+real cply;
+
+/* Read solution */
+loadvec2(SOL,ux[],uy[]);
+
+/* Calculate compliance */
+cply = int2d(Th,REFINT)(mu*(2.0*dx(ux)*dx(ux) + (dx(uy)+dy(ux))*(dx(uy)+dy(ux))
+                           + 2.0*dy(uy)*dy(uy)) + lm*(dx(ux)+dy(uy))*(dx(ux)+dy(uy)));
+
+/* Save result */
+setrParam(EXCHFILE,"Compliance",cply);

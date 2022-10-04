@@ -1,0 +1,24 @@
+/* Creation of the initial level set function: bridge test case */
+include "./sources/inout.idp"
+include "./sources/macros.idp"
+
+/* Get mesh and sol names */
+string MESH = getsParam(EXCHFILE,"MeshName");
+string PHI  = getsParam(EXCHFILE,"PhiName");
+
+/* Read mesh */
+mesh Th = readmesh(MESH);
+
+/* Finite element space and functions */
+fespace Vh(Th,P1);
+Vh phi;
+
+/* Definition of the initial level set function */
+func real iniLS(real xx,real yy) {
+  return (yy-0.7);
+}
+
+phi = iniLS(x,y);
+
+/* Save LS function */
+printsol(PHI,phi[]);
