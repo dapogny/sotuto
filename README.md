@@ -4,7 +4,7 @@
 
 
 ## Documentation
-
+See the [companion article](). 
 
 ## About the team
 These codes are based on researches conducted by Grégoire Allaire, Charles Dapogny, Florian Feppon and Pascal Frey.
@@ -29,5 +29,5 @@ Code is under the [terms of the GNU Lesser General Public License].
 
 [Shape optimization of a coupled thermal fluid-structure problem in a level set mesh evolution framework  - F. Feppon, G. Allaire, F. Bordeu, J. Cortial and C. Dapogny, SeMA J., 76, 3, (2019), pp. 413--458](https://hal.archives-ouvertes.fr/hal-01686770/)
 
-### Overview and tutorial about the method
+### Companion article of this repository
 [Shape optimization using a level set based mesh evolution method: an overview and tutorial - G. Allaire, C. Dapogny, F. Feppon and P. Frey, submitted, (2022)]()
