@@ -181,6 +181,18 @@ def testLib():
   else :
     print("Problem with Mmg installation.")
     exit()
+  
+  # Test command line gsed
+  proc = subprocess.Popen(["gsed 's/MeshVersionFormatted/MeshVersion/g' {SolName} > /dev/null 2>&1".format(SolName=path.TESTSOL)],shell=True)
+  proc.wait()
+  proc = subprocess.Popen(["gsed 's/MeshVersion/MeshVersionFormatted/g' {SolName} > /dev/null 2>&1".format(SolName=path.TESTSOL)],shell=True)
+  proc.wait()
+  
+  if ( proc.returncode == 0 ) :
+    print("gsed command line working.")
+  else :
+    print("Problem with gsed command line.")
+    exit()
 
   print("All external libraries working.")
   log.close()
